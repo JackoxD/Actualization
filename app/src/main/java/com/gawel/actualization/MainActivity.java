@@ -6,6 +6,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Context;
 import android.os.Bundle;
+import android.os.Environment;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.View;
@@ -17,6 +18,12 @@ import com.vanstone.trans.api.SystemApi;
 import com.vanstone.trans.api.constants.GlobalConstants;
 import com.vanstone.utils.CommonConvert;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.Observable;
 
 public class MainActivity extends AppCompatActivity {
@@ -53,6 +60,14 @@ public class MainActivity extends AppCompatActivity {
                     Log.v("rel_", "pkg :" + s);
                     Log.v("rel_", "code :" + i);
                     Log.v("rel_", "msg: " + s1);
+
+                    File src = new File("/data/anr/traces.txt");
+                    File dst = new File("/data/tracesCopy.txt");
+                    try {
+                        copy(src, dst);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
                 });
             }
 
@@ -62,5 +77,18 @@ public class MainActivity extends AppCompatActivity {
                 Log.d(TAG, "sdkInitFailed: printer");
             }
         });
+    }
+
+    public static void copy(File src, File dst) throws IOException {
+        try (InputStream in = new FileInputStream(src)) {
+            try (OutputStream out = new FileOutputStream(dst)) {
+                // Transfer bytes from in to out
+                byte[] buf = new byte[1024];
+                int len;
+                while ((len = in.read(buf)) > 0) {
+                    out.write(buf, 0, len);
+                }
+            }
+        }
     }
 }
