@@ -45,9 +45,9 @@ public class MainActivity extends AppCompatActivity {
             public void sdkInitSuccessed() {
                 txt.setText("Pomyślnie załadowano potrzebne biblioteki");
                 Log.d(TAG, "sdkInitSuccessed: installation start");
-                Log.d(TAG, "sdkInitSuccessed: File size: " + FileApi.GetFileSize_Api("/storage/emulated/0/Download/debug/app-debug.apk"));
+                Log.d(TAG, "sdkInitSuccessed: File size: " + FileApi.GetFileSize_Api("/mnt/sdcard/Download/debug/app-debug.apk"));
 
-                SystemApi.silentInstallApk_Api("/storage/emulated/0/Download/debug/app-debug.apk", getPackageName(), (s, i, s1) -> {
+                SystemApi.silentInstallApk_Api("/mnt/sdcard/Download/debug/app-debug.apk", getPackageName(), (s, i, s1) -> {
                     txt.setText("Ukończono instalację z wynikiem: " + s1);
                     Log.v("rel_", "===========onInstallFinished==============");
                     Log.v("rel_", "pkg :" + s);
