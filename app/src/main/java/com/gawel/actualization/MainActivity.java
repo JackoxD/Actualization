@@ -7,12 +7,15 @@ import androidx.core.app.ActivityCompat;
 
 import android.Manifest;
 import android.content.Context;
+import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.View;
+import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -34,39 +37,68 @@ public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
 
     TextView txt;
+    Button button;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         txt = findViewById(R.id.txt);
+        button = findViewById(R.id.button);
+
+        button.setOnClickListener(v -> {
+            if(isStoragePermissionGranted())
+                actualization();
+        });
+
+        try {
+            PackageInfo pInfo = this.getPackageManager().getPackageInfo(this.getPackageName(), 0);
+            String version = pInfo.versionName;
+            int verCode = pInfo.versionCode;
+            txt.setText("Version name: " + version +
+                    "\nVersion Code: " + verCode);
+            if(verCode == 2)
+                button.setEnabled(false);
+        } catch (PackageManager.NameNotFoundException e) {
+            e.printStackTrace();
+        }
 
 //        txt.setText("To jest wersja zaktualizowana");
 
-        checkDiskPermission();
+
 
     }
 
-    private void checkDiskPermission() {
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-            Toast.makeText(this, "No Permissions", Toast.LENGTH_LONG).show();
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION}, 0);
-        } else {
-            Toast.makeText(this, "Has Permissions", Toast.LENGTH_LONG).show();
-            actualization();
-
+    public  boolean isStoragePermissionGranted() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                    == PackageManager.PERMISSION_GRANTED) {
+                Log.v(TAG,"Permission is granted");
+                return true;
+            } else {
+                Log.v(TAG,"Permission is revoked");
+                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 501);
+                return false;
+            }
+        }
+        else { //permission is automatically granted on sdk<23 upon installation
+            Log.v(TAG,"Permission is granted");
+            return true;
         }
     }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == 1)
+        if(grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED){
+            Log.v(TAG,"Permission: "+permissions[0]+ "was "+grantResults[0]);
             actualization();
+        }
     }
 
     private void actualization() {
-        txt.setText("Rozpoczynanie aktualizacji");
+        Log.d(TAG, "Rozpoczynanie aktualizacji");
 
         GlobalConstants.CurAppDir = this.getFilesDir().getAbsolutePath();
 
@@ -74,45 +106,25 @@ public class MainActivity extends AppCompatActivity {
                 GlobalConstants.CurAppDir + "/" + "libs/ameabi"), this, new ISdkStatue() {
             @Override
             public void sdkInitSuccessed() {
-                txt.setText("Pomyślnie załadowano potrzebne biblioteki");
+               Log.d(TAG, "Pomyślnie załadowano potrzebne biblioteki");
                 Log.d(TAG, "sdkInitSuccessed: installation start");
                 Log.d(TAG, "sdkInitSuccessed: File size: " + FileApi.GetFileSize_Api("/mnt/sdcard/Download/debug/app-debug.apk"));
 
                 SystemApi.silentInstallApk_Api("/mnt/sdcard/Download/debug/app-debug.apk", getPackageName(), (s, i, s1) -> {
-                    txt.setText("Ukończono instalację z wynikiem: " + s1);
+                   Log.d(TAG, "Ukończono instalację z wynikiem: " + s1);
                     Log.v("rel_", "===========onInstallFinished==============");
                     Log.v("rel_", "pkg :" + s);
                     Log.v("rel_", "code :" + i);
                     Log.v("rel_", "msg: " + s1);
 
-                    File src = new File("/data/anr/traces.txt");
-                    File dst = new File("/data/tracesCopy.txt");
-                    try {
-                        copy(src, dst);
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
                 });
             }
 
             @Override
             public void sdkInitFailed() {
-                txt.setText("Błąd podczas ładowania potrzebnych bibliotek");
+               Log.d(TAG, "Błąd podczas ładowania potrzebnych bibliotek");
                 Log.d(TAG, "sdkInitFailed: printer");
             }
         });
-    }
-
-    public static void copy(File src, File dst) throws IOException {
-        try (InputStream in = new FileInputStream(src)) {
-            try (OutputStream out = new FileOutputStream(dst)) {
-                // Transfer bytes from in to out
-                byte[] buf = new byte[1024];
-                int len;
-                while ((len = in.read(buf)) > 0) {
-                    out.write(buf, 0, len);
-                }
-            }
-        }
     }
 }
